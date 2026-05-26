@@ -1,0 +1,109 @@
+def hitung_mean(X):
+    """Menghitung rata-rata untuk setiap kolom (fitur)."""
+    n_sampel = len(X)
+    n_fitur = len(X[0])
+    means = [0.0] * n_fitur
+    for i in range(n_sampel):
+        for j in range(n_fitur):
+            means[j] += X[i][j]
+    for j in range(n_fitur):
+        means[j] /= n_sampel
+    return means
+
+def kurangi_mean(X, means):
+    """Memusatkan data dengan mengurangi nilai data terhadap rata-rata."""
+    n_sampel = len(X)
+    n_fitur = len(X[0])
+    X_centered = [[0.0 for _ in range(n_fitur)] for _ in range(n_sampel)]
+    for i in range(n_sampel):
+        for j in range(n_fitur):
+            X_centered[i][j] = X[i][j] - means[j]
+    return X_centered
+
+def hitung_kovarian(X_centered):
+    """Menghitung matriks kovarian dari data yang sudah dipusatkan."""
+    n_sampel = len(X_centered)
+    n_fitur = len(X_centered[0])
+    cov_matrix = [[0.0 for _ in range(n_fitur)] for _ in range(n_fitur)]
+    
+    for i in range(n_fitur):
+        for j in range(n_fitur):
+            jumlah = 0.0
+            for k in range(n_sampel):
+                jumlah += X_centered[k][i] * X_centered[k][j]
+            cov_matrix[i][j] = jumlah / (n_sampel - 1)
+    return cov_matrix
+
+def transpose_matriks(matriks):
+    """Melakukan transpose pada sebuah matriks."""
+    if not matriks:
+        return []
+    return [[matriks[j][i] for j in range(len(matriks))] for i in range(len(matriks[0]))]
+
+def kalikan_matriks(A, B):
+    """Perkalian dua buah matriks."""
+    baris_A = len(A)
+    kolom_A = len(A[0])
+    kolom_B = len(B[0])
+    
+    hasil = [[0.0 for _ in range(kolom_B)] for _ in range(baris_A)]
+    for i in range(baris_A):
+        for j in range(kolom_B):
+            for k in range(kolom_A):
+                hasil[i][j] += A[i][k] * B[k][j]
+    return hasil
+
+def terapkan_pca(X, n_komponen):
+    """
+    Menerapkan PCA dari awal menggunakan Python murni.
+    Catatan: Pustaka opsional untuk mengekstrak vektor eigen (Eigenvalues & Eigenvectors) 
+    diperlukan dari fungsi bawaan seperti 'numpy.linalg.eig' jika tidak ingin membuat 
+    fungsi kalkulasi numerik iteratif yang rumit dari nol.
+    """
+    import numpy as np
+    
+    # 1. Menghitung rata-rata dan memusatkan data
+    means = hitung_mean(X)
+    X_centered = kurangi_mean(X, means)
+    
+    # 2. Menghitung matriks kovarian
+    cov_matrix = hitung_kovarian(X_centered)
+    
+    # 3. Mencari nilai eigen dan vektor eigen
+    eigenvalues, eigenvectors = np.linalg.eig(cov_matrix)
+    
+    # 4. Mengurutkan eigenvalues secara menurun (descending)
+    idx = np.argsort(eigenvalues)[::-1]
+    eigenvalues_sorted = eigenvalues[idx]
+    eigenvectors_sorted = eigenvectors[:, idx]
+    
+    # 5. Memilih komponen utama
+    komponen_utama = eigenvectors_sorted[:, :n_komponen]
+    
+    # 6. Proyeksi data ke ruang dimensi baru
+    X_centered_T = transpose_matriks(X_centered)
+    komponen_utama_T = transpose_matriks(komponen_utama)
+    
+    X_baru_T = kalikan_matriks(komponen_utama_T, X_centered_T)
+    X_baru = transpose_matriks(X_baru_T)
+    
+    return X_baru
+
+# --- CONTOH PENGGUNAAN ---
+# Dataset tiruan (3 sampel, 3 fitur)
+data_latih = [
+    [2.5, 2.4, 0.5],
+    [0.5, 0.7, 0.2],
+    [2.2, 2.9, 0.8]
+]
+
+# Reduksi data menjadi 2 dimensi (komponen)
+data_hasil_pca = terapkan_pca(data_latih, n_komponen=2)
+
+print("Data Asli:")
+for baris in data_latih:
+    print(baris)
+
+print("\nHasil Reduksi PCA:")
+for baris in data_hasil_pca:
+    print(baris)
